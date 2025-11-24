@@ -8,12 +8,12 @@ import androidx.room.PrimaryKey
 data class Report(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val title: String,
-    val description: String,
-    val category: ReportCategory,
-    val latitude: Double,
-    val longitude: Double,
-    val photoUri: String,
+    val title: String = "",
+    val description: String = "",
+    val category: ReportCategory = ReportCategory.OTHER,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val photoUri: String = "",
     val status: ReportStatus = ReportStatus.PENDING,
     val timestamp: Long = System.currentTimeMillis(),
     val address: String = ""
