@@ -4,11 +4,15 @@ package com.example.final_project_papb.data.repository
 import com.example.final_project_papb.data.model.Report
 import com.example.final_project_papb.data.model.ReportStatus
 import com.example.final_project_papb.data.local.ReportDao
+import com.example.final_project_papb.data.remote.FirebaseDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
-class ReportRepository(private val reportDao: ReportDao) {
+class ReportRepository(
+    private val reportDao: ReportDao,
+    private val firebaseDataSource: FirebaseDataSource
+) {
 
     fun getAllReports(): Flow<List<Report>> = reportDao.getAllReports()
 
@@ -20,22 +24,32 @@ class ReportRepository(private val reportDao: ReportDao) {
     }
 
     suspend fun insertReport(report: Report): Long = withContext(Dispatchers.IO) {
-        reportDao.insertReport(report)
+        val id = reportDao.insertReport(report)
+        firebaseDataSource.upload(report)
+        id
     }
 
     suspend fun updateReport(report: Report) = withContext(Dispatchers.IO) {
         reportDao.updateReport(report)
+        report.id.let { firebaseDataSource.update(it, report) }
     }
 
     suspend fun deleteReport(report: Report) = withContext(Dispatchers.IO) {
         reportDao.deleteReport(report)
+        report.id.let { firebaseDataSource.delete(it) }
     }
 
     suspend fun updateReportStatus(reportId: Long, newStatus: ReportStatus) =
         withContext(Dispatchers.IO) {
             val report = reportDao.getReportById(reportId)
             report?.let {
-                reportDao.updateReport(it.copy(status = newStatus))
+                val updated = it.copy(status = newStatus)
+                reportDao.updateReport(updated)
+                updated.id.let { id -> firebaseDataSource.update(id, updated) }
             }
         }
+
+    suspend fun syncFromFirebase() = withContext(Dispatchers.IO) {
+        firebaseDataSource.sync()
+    }
 }
