@@ -30,7 +30,7 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
         val firebaseDataSource = FirebaseDataSource()
         repository = ReportRepository(reportDao, firebaseDataSource)
 
-        allReports = repository.getAllReports()
+        allReports = repository.getAllReportsRemote()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),

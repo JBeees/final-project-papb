@@ -14,7 +14,9 @@ class ReportRepository(
     private val firebaseDataSource: FirebaseDataSource
 ) {
 
-    fun getAllReports(): Flow<List<Report>> = reportDao.getAllReports()
+    fun getAllReportsRemote(): Flow<List<Report>> = firebaseDataSource.get()
+
+    fun getAllReportsLocal(): Flow<List<Report>> = reportDao.getAllReports()
 
     fun getReportsByStatus(status: ReportStatus): Flow<List<Report>> =
         reportDao.getReportsByStatus(status)
