@@ -8,6 +8,7 @@ import com.example.final_project_papb.data.local.AppDatabase
 import com.example.final_project_papb.data.model.Report
 import com.example.final_project_papb.data.model.ReportCategory
 import com.example.final_project_papb.data.model.ReportStatus
+import com.example.final_project_papb.data.remote.FirebaseDataSource
 import com.example.final_project_papb.data.repository.ReportRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -26,9 +27,10 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         val reportDao = AppDatabase.getDatabase(application).reportDao()
-        repository = ReportRepository(reportDao)
+        val firebaseDataSource = FirebaseDataSource()
+        repository = ReportRepository(reportDao, firebaseDataSource)
 
-        allReports = repository.getAllReports()
+        allReports = repository.getAllReportsRemote()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
