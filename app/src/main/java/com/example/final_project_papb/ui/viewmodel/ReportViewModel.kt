@@ -1,4 +1,3 @@
-// File: ui/viewmodel/ReportViewModel.kt
 package com.example.final_project_papb.ui.viewmodel
 
 import android.app.Application
@@ -13,29 +12,31 @@ import com.example.final_project_papb.data.repository.ReportRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-class ReportViewModel(application: Application) : AndroidViewModel(application) {
+class ReportViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repository: ReportRepository
 
+    // 🔥 Sesuai permintaan: pakai `allReports`
     val allReports: StateFlow<List<Report>>
 
-    private val _selectedReport = MutableStateFlow<Report?>(null)
-    val selectedReport: StateFlow<Report?> = _selectedReport.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
     init {
-        val reportDao = AppDatabase.getDatabase(application).reportDao()
+        val reportDao = AppDatabase.getDatabase(app).reportDao()
         val firebaseDataSource = FirebaseDataSource()
         repository = ReportRepository(reportDao, firebaseDataSource)
 
-        allReports = repository.getAllReportsRemote()
+        allReports = repository.getAllReportsLocal()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
+
+        // 🔄 Sync Firebase → Room realtime
+        viewModelScope.launch {
+            repository.syncFromFirebase().collect { reports ->
+                reports.forEach { repository.insertOrUpdateLocal(it) }
+            }
+        }
     }
 
     fun insertReport(
@@ -46,48 +47,35 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
         longitude: Double,
         photoUri: String,
         address: String
-    ) {
+    ) = viewModelScope.launch {
+        repository.insertReport(
+            Report(
+                title = title,
+                description = description,
+                category = category,
+                latitude = latitude,
+                longitude = longitude,
+                photoUri = photoUri,
+                address = address
+            )
+        )
+    }
+
+    fun updateReportStatus(report: Report, status: ReportStatus) =
         viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                val report = Report(
-                    title = title,
-                    description = description,
-                    category = category,
-                    latitude = latitude,
-                    longitude = longitude,
-                    photoUri = photoUri,
-                    address = address
-                )
-                repository.insertReport(report)
-            } finally {
-                _isLoading.value = false
-            }
+            repository.updateReportStatus(report, status)
         }
-    }
 
-    fun updateReportStatus(reportId: Long, newStatus: ReportStatus) {
-        viewModelScope.launch {
-            repository.updateReportStatus(reportId, newStatus)
-        }
-    }
-
-    fun selectReport(report: Report?) {
-        _selectedReport.value = report
-    }
-
-    fun deleteReport(report: Report) {
+    fun deleteReport(report: Report) =
         viewModelScope.launch {
             repository.deleteReport(report)
         }
-    }
 
-    fun getReportsByStatus(status: ReportStatus): StateFlow<List<Report>> {
-        return repository.getReportsByStatus(status)
+    fun getReportsByStatus(status: ReportStatus): StateFlow<List<Report>> =
+        repository.getReportsByStatus(status)
             .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                emptyList()
             )
-    }
 }

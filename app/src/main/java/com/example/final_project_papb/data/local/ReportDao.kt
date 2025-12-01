@@ -1,4 +1,3 @@
-// File: data/local/ReportDao.kt
 package com.example.final_project_papb.data.local
 
 import androidx.room.*
@@ -8,17 +7,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReportDao {
-    @Query("SELECT * FROM reports ORDER BY timestamp DESC")
-    fun getAllReports(): Flow<List<Report>>
-
-    @Query("SELECT * FROM reports WHERE id = :id")
-    suspend fun getReportById(id: Long): Report?
-
-    @Query("SELECT * FROM reports WHERE status = :status ORDER BY timestamp DESC")
-    fun getReportsByStatus(status: ReportStatus): Flow<List<Report>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertReport(report: Report): Long
+    suspend fun insertOrUpdate(report: Report): Long
 
     @Update
     suspend fun updateReport(report: Report)
@@ -26,6 +17,12 @@ interface ReportDao {
     @Delete
     suspend fun deleteReport(report: Report)
 
-    @Query("DELETE FROM reports")
-    suspend fun deleteAllReports()
+    @Query("SELECT * FROM reports ORDER BY timestamp DESC")
+    fun getAllReports(): Flow<List<Report>>
+
+    @Query("SELECT * FROM reports WHERE status = :status ORDER BY timestamp DESC")
+    fun getReportsByStatus(status: ReportStatus): Flow<List<Report>>
+
+    @Query("SELECT * FROM reports WHERE id = :id LIMIT 1")
+    suspend fun getReportById(id: Long): Report?
 }

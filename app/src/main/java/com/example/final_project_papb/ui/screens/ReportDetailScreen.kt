@@ -160,6 +160,7 @@ fun ReportDetailScreen(
     }
 
     // Status Update Dialog
+    // Status Update Dialog
     if (showStatusDialog) {
         AlertDialog(
             onDismissRequest = { showStatusDialog = false },
@@ -170,15 +171,13 @@ fun ReportDetailScreen(
                         TextButton(
                             onClick = {
                                 scope.launch {
-                                    viewModel.updateReportStatus(report.id, status)
+                                    viewModel.updateReportStatus(report, status)
                                     showStatusDialog = false
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Icon(
                                     when (status) {
                                         ReportStatus.PENDING -> Icons.Default.Schedule
@@ -201,6 +200,7 @@ fun ReportDetailScreen(
             }
         )
     }
+
 
     // Delete Confirmation Dialog
     if (showDeleteDialog) {

@@ -1,13 +1,18 @@
-// File: data/model/Report.kt
 package com.example.final_project_papb.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.google.firebase.firestore.PropertyName
 
 @Entity(tableName = "reports")
 data class Report(
     @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    val id: Long = 0,   // Local Primary Key
+
+    @get:PropertyName("idFirebase")
+    @set:PropertyName("idFirebase")
+    var idFirebase: String = "", // Firestore document ID
+
     val title: String = "",
     val description: String = "",
     val category: ReportCategory = ReportCategory.OTHER,

@@ -1,58 +1,43 @@
-// File: data/repository/ReportRepository.kt
 package com.example.final_project_papb.data.repository
 
+import com.example.final_project_papb.data.local.ReportDao
 import com.example.final_project_papb.data.model.Report
 import com.example.final_project_papb.data.model.ReportStatus
-import com.example.final_project_papb.data.local.ReportDao
 import com.example.final_project_papb.data.remote.FirebaseDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
 class ReportRepository(
-    private val reportDao: ReportDao,
-    private val firebaseDataSource: FirebaseDataSource
+    private val dao: ReportDao,
+    private val firebase: FirebaseDataSource
 ) {
 
-    fun getAllReportsRemote(): Flow<List<Report>> = firebaseDataSource.get()
-
-    fun getAllReportsLocal(): Flow<List<Report>> = reportDao.getAllReports()
+    fun getAllReportsLocal(): Flow<List<Report>> = dao.getAllReports()
 
     fun getReportsByStatus(status: ReportStatus): Flow<List<Report>> =
-        reportDao.getReportsByStatus(status)
+        dao.getReportsByStatus(status)
 
-    suspend fun getReportById(id: Long): Report? = withContext(Dispatchers.IO) {
-        reportDao.getReportById(id)
+    suspend fun insertOrUpdateLocal(report: Report) {
+        dao.insertOrUpdate(report)
     }
 
-    suspend fun insertReport(report: Report): Long = withContext(Dispatchers.IO) {
-        val generatedId = reportDao.insertReport(report)
-        val reportWithId = report.copy(id = generatedId)
-
-        firebaseDataSource.upload(reportWithId)
-        generatedId
+    suspend fun insertReport(report: Report) {
+        val localId = dao.insertOrUpdate(report)
+        val idFirebase = firebase.upload(report.copy(id = localId))
+        dao.updateReport(report.copy(id = localId, idFirebase = idFirebase))
     }
 
-    suspend fun updateReport(report: Report) = withContext(Dispatchers.IO) {
-        reportDao.updateReport(report)
-        report.id.let { firebaseDataSource.update(it, report) }
+    suspend fun updateReportStatus(report: Report, status: ReportStatus) {
+        val updated = report.copy(status = status)
+        dao.updateReport(updated)
+        firebase.updateStatus(updated.idFirebase, status)
     }
 
-    suspend fun deleteReport(report: Report) = withContext(Dispatchers.IO) {
-        reportDao.deleteReport(report)
-        report.id.let { firebaseDataSource.delete(it) }
+    suspend fun deleteReport(report: Report) {
+        dao.deleteReport(report)
+        firebase.delete(report.idFirebase)
     }
 
-    suspend fun updateReportStatus(reportId: Long, newStatus: ReportStatus) =
-        withContext(Dispatchers.IO) {
-            val report = reportDao.getReportById(reportId)
-            report?.let {
-                val updated = it.copy(status = newStatus)
-                reportDao.updateReport(updated)
-                // Safely handle the nullable id before calling Firebase
-                updated.id?.let { id ->
-                    firebaseDataSource.update(id, updated)
-                }
-            }
-        }
+    fun syncFromFirebase() = firebase.getRealtime()
 }
