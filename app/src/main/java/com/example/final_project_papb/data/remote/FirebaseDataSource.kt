@@ -12,15 +12,10 @@ class FirebaseDataSource {
     private val collection = db.collection("reports")
 
     suspend fun upload(report: Report): Result<String> = try {
-        val docRef = collection.add(report).await()
+        // pastikan report.id sudah terisi (bukan 0)
+        val docRef = collection.document(report.id.toString())
+        docRef.set(report).await()
         Result.success(docRef.id)
-    } catch (e: Exception) {
-        Result.failure(e)
-    }
-
-    suspend fun sync(): Result<List<Report>> = try {
-        val snapshot = collection.get().await()
-        Result.success(snapshot.toObjects(Report::class.java))
     } catch (e: Exception) {
         Result.failure(e)
     }

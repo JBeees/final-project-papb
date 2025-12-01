@@ -26,9 +26,11 @@ class ReportRepository(
     }
 
     suspend fun insertReport(report: Report): Long = withContext(Dispatchers.IO) {
-        val id = reportDao.insertReport(report)
-        firebaseDataSource.upload(report)
-        id
+        val generatedId = reportDao.insertReport(report)
+        val reportWithId = report.copy(id = generatedId)
+
+        firebaseDataSource.upload(reportWithId)
+        generatedId
     }
 
     suspend fun updateReport(report: Report) = withContext(Dispatchers.IO) {
@@ -47,11 +49,10 @@ class ReportRepository(
             report?.let {
                 val updated = it.copy(status = newStatus)
                 reportDao.updateReport(updated)
-                updated.id.let { id -> firebaseDataSource.update(id, updated) }
+                // Safely handle the nullable id before calling Firebase
+                updated.id?.let { id ->
+                    firebaseDataSource.update(id, updated)
+                }
             }
         }
-
-    suspend fun syncFromFirebase() = withContext(Dispatchers.IO) {
-        firebaseDataSource.sync()
-    }
 }
